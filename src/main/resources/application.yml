@@ -1,0 +1,4 @@
+oauth2:
+  kakao:
+    redirect-uri:
+    auth-uri: "https://kauth.kakao.com/oauth/authorize"
