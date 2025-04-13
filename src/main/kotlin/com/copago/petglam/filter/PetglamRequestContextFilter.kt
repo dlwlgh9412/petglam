@@ -11,7 +11,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
-class RequestContextFilter : OncePerRequestFilter() {
+class PetglamRequestContextFilter : OncePerRequestFilter() {
     companion object {
         const val X_REQUEST_ID = "X_REQUEST_ID"
         const val DEFAULT_LOCALE = "ko"
