@@ -1,4 +1,3 @@
--- Users table
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
@@ -13,10 +12,8 @@ CREATE TABLE users (
     CONSTRAINT uk_users_email UNIQUE (email)
 );
 
--- Create index on email
 CREATE INDEX idx_user_email ON users (email);
 
--- User social connections table
 CREATE TABLE user_social_connections (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,

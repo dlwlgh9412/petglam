@@ -1,11 +1,15 @@
 package com.copago.petglam.filter
 
-import com.copago.petglam.exception.UnauthorizedException
+import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.exception.AuthenticationException
+import com.copago.petglam.exception.ErrorResponse
+import com.copago.petglam.service.ErrorMessageService
 import com.copago.petglam.service.JwtService
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -15,14 +19,18 @@ import java.time.LocalDateTime
 @Component
 class JwtAuthenticationFilter(
     private val jwtService: JwtService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val errorMessageService: ErrorMessageService
 ) : OncePerRequestFilter() {
+    private val log = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
 
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
+        val requestId = RequestContextHolder.getRequestId()
+
         // 인증이 필요 없는 경로는 필터를 건너뜀
         if (shouldSkipFilter(request)) {
             filterChain.doFilter(request, response)
@@ -32,10 +40,15 @@ class JwtAuthenticationFilter(
         try {
             // Authorization 헤더에서 토큰 추출
             val token = extractToken(request)
-                ?: throw UnauthorizedException("인증 토큰이 필요합니다.")
+                ?: throw AuthenticationException.invalidCredentials(
+                    message = "인증 토큰이 필요합니다.",
+                    errorDetails = mapOf("path" to request.requestURI)
+                )
 
-            // 토큰 검증
-            val claims = jwtService.validateToken(token)
+            log.debug("Validating JWT token for path: {} [requestId={}]", request.requestURI, requestId)
+
+            // 토큰 검증 (예외는 JwtService에서 처리)
+            jwtService.validateToken(token)
 
             // 사용자 ID와 역할을 요청 속성에 설정
             request.setAttribute("userId", jwtService.getUserIdFromToken(token))
@@ -44,10 +57,17 @@ class JwtAuthenticationFilter(
             filterChain.doFilter(request, response)
         } catch (e: Exception) {
             // 인증 오류 응답 처리
+            log.warn(
+                "JWT authentication failed for path: {} [requestId={}]",
+                request.requestURI, requestId, e
+            )
             sendErrorResponse(response, e)
         }
     }
 
+    /**
+     * Authorization 헤더에서 토큰 추출
+     */
     private fun extractToken(request: HttpServletRequest): String? {
         val bearerToken = request.getHeader("Authorization")
         return if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
@@ -55,24 +75,45 @@ class JwtAuthenticationFilter(
         } else null
     }
 
+    /**
+     * 인증 필터를 건너뛸 경로 확인
+     */
     private fun shouldSkipFilter(request: HttpServletRequest): Boolean {
         val path = request.requestURI
         return path.startsWith("/api/v1/oauth2") ||
                 path.startsWith("/h2-console") ||
                 path.startsWith("/error") ||
                 path.startsWith("/swagger-ui") ||
-                path.startsWith("/v3/api-docs")
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/actuator")
     }
 
+    /**
+     * 인증 오류 응답 전송
+     */
     private fun sendErrorResponse(response: HttpServletResponse, exception: Exception) {
         response.status = HttpStatus.UNAUTHORIZED.value()
         response.contentType = MediaType.APPLICATION_JSON_VALUE
 
-        val errorResponse = mapOf(
-            "timestamp" to LocalDateTime.now().toString(),
-            "status" to HttpStatus.UNAUTHORIZED.value(),
-            "error" to HttpStatus.UNAUTHORIZED.reasonPhrase,
-            "message" to (exception.message ?: "인증에 실패했습니다.")
+        // 오류를 AuthenticationException으로 변환
+        val authException = when (exception) {
+            is AuthenticationException -> exception
+            else -> AuthenticationException.invalidCredentials(
+                message = exception.message,
+                errorDetails = mapOf("originalError" to (exception.message ?: "알 수 없는 오류"))
+            )
+        }
+
+        // 다국어 오류 메시지 조회
+        val message = errorMessageService.getMessage(authException.errorCodeString)
+
+        val errorResponse = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.UNAUTHORIZED.value(),
+            error = authException.errorCodeString,
+            message = message,
+            details = authException.errorDetails,
+            requestId = authException.requestId ?: RequestContextHolder.getRequestId()
         )
 
         response.writer.write(objectMapper.writeValueAsString(errorResponse))

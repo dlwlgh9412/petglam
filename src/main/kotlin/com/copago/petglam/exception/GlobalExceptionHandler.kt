@@ -1,94 +1,165 @@
 package com.copago.petglam.exception
 
+import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.service.ErrorMessageService
+import io.micrometer.core.instrument.MeterRegistry
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.validation.BindException
+import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.client.RestClientException
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
+import org.springframework.web.servlet.NoHandlerFoundException
 import java.time.LocalDateTime
 
 @RestControllerAdvice
-class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
+class GlobalExceptionHandler(
+    private val errorMessageService: ErrorMessageService,
+    private val meterRegistry: MeterRegistry
+) {
+    private val log: Logger = LoggerFactory.getLogger(javaClass)
 
     @ExceptionHandler(ApplicationException::class)
     fun handleApiException(ex: ApplicationException): ResponseEntity<ErrorResponse> {
-        val status = HttpStatus.valueOf(ex.statusCode)
+        incrementErrorMetric(ex.errorCodeString)
+
+        val message = errorMessageService.getMessage(ex.errorCodeString)
+
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
-            status = status.value(),
-            error = status.reasonPhrase,
-            message = ex.message ?: "오류가 발생했습니다.",
+            status = ex.statusCode,
+            error = ex.errorCodeString,
+            message = message,
+            details = ex.errorDetails,
+            requestId = ex.requestId ?: RequestContextHolder.getRequestId()
         )
 
-        return ResponseEntity(errorResponse, status)
+        return ResponseEntity(errorResponse, HttpStatus.valueOf(ex.statusCode))
     }
 
-    @ExceptionHandler(BadRequestException::class)
-    fun handleBadRequestException(ex: BadRequestException): ResponseEntity<ErrorResponse> {
+    /**
+     * 유효성 검사 예외 처리
+     */
+    @ExceptionHandler(
+        MethodArgumentNotValidException::class,
+        BindException::class,
+        MissingServletRequestParameterException::class,
+        MethodArgumentTypeMismatchException::class,
+        HttpMessageNotReadableException::class
+    )
+    fun handleValidationExceptions(ex: Exception): ResponseEntity<ErrorResponse> {
+        val errorCode = ErrorCode.COMMON_INVALID_PARAMETER
+        incrementErrorMetric(errorCode.code)
+
+        // 유효성 검사 오류 상세 정보 추출
+        val validationErrors = when (ex) {
+            is MethodArgumentNotValidException -> {
+                ex.bindingResult.fieldErrors.associate { it.field to (it.defaultMessage ?: "유효하지 않은 값") }
+            }
+            is BindException -> {
+                ex.bindingResult.fieldErrors.associate { it.field to (it.defaultMessage ?: "유효하지 않은 값") }
+            }
+            is MissingServletRequestParameterException -> {
+                mapOf(ex.parameterName to "필수 파라미터가 누락되었습니다.")
+            }
+            is MethodArgumentTypeMismatchException -> {
+                mapOf(ex.name to "잘못된 타입의 값이 입력되었습니다.")
+            }
+            else -> {
+                mapOf("body" to "요청 본문을 파싱할 수 없습니다.")
+            }
+        }
+
+        val message = errorMessageService.getMessage(errorCode.code)
+
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
             status = HttpStatus.BAD_REQUEST.value(),
-            error = HttpStatus.BAD_REQUEST.reasonPhrase,
-            message = ex.message ?: "잘못된 요청입니다.",
+            error = errorCode.code,
+            message = message,
+            details = mapOf("validationErrors" to validationErrors),
+            requestId = RequestContextHolder.getRequestId()
         )
+
         return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
     }
 
-    @ExceptionHandler(UnauthorizedException::class)
-    fun handleUnauthorizedException(ex: UnauthorizedException): ResponseEntity<ErrorResponse> {
-        val errorResponse = ErrorResponse(
-            timestamp = LocalDateTime.now(),
-            status = HttpStatus.UNAUTHORIZED.value(),
-            error = HttpStatus.UNAUTHORIZED.reasonPhrase,
-            message = ex.message ?: "인증에 실패했습니다.",
-        )
-        return ResponseEntity(errorResponse, HttpStatus.UNAUTHORIZED)
-    }
+    /**
+     * 요청한 리소스를 찾을 수 없는 예외 처리
+     */
+    @ExceptionHandler(NoHandlerFoundException::class)
+    fun handleNoHandlerFoundException(): ResponseEntity<ErrorResponse> {
+        val errorCode = ErrorCode.COMMON_RESOURCE_NOT_FOUND
+        incrementErrorMetric(errorCode.code)
 
-    @ExceptionHandler(ResourceNotFoundException::class)
-    fun handleNotFoundException(ex: ResourceNotFoundException): ResponseEntity<ErrorResponse> {
+        val message = errorMessageService.getMessage(errorCode.code)
+
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
             status = HttpStatus.NOT_FOUND.value(),
-            error = HttpStatus.NOT_FOUND.reasonPhrase,
-            message = ex.message ?: "요청한 리소스를 찾을 수 없습니다.",
+            error = errorCode.code,
+            message = message,
+            requestId = RequestContextHolder.getRequestId()
         )
+
         return ResponseEntity(errorResponse, HttpStatus.NOT_FOUND)
     }
 
-    @ExceptionHandler(AuthenticationException::class)
-    fun handleOAuth2Exception(ex: AuthenticationException): ResponseEntity<ErrorResponse> {
-        val errorResponse = ErrorResponse(
-            timestamp = LocalDateTime.now(),
-            status = HttpStatus.BAD_REQUEST.value(),
-            error = "OAuth2Error",
-            message = ex.message ?: "소셜 로그인 처리 중 오류가 발생했습니다.",
-            details = null
-        )
-        return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
-    }
-
+    /**
+     * 외부 API 통신 오류 처리
+     */
     @ExceptionHandler(RestClientException::class)
     fun handleRestClientException(ex: RestClientException): ResponseEntity<ErrorResponse> {
+        val errorCode = ErrorCode.API_COMMUNICATION_ERROR
+        incrementErrorMetric(errorCode.code)
+
+        log.warn("External API error: {}", ex.message)
+
+        val message = errorMessageService.getMessage(errorCode.code)
+
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
             status = HttpStatus.SERVICE_UNAVAILABLE.value(),
-            error = HttpStatus.SERVICE_UNAVAILABLE.reasonPhrase,
-            message = "외부 서비스와 통신 중 오류가 발생했습니다.",
+            error = errorCode.code,
+            message = message,
+            requestId = RequestContextHolder.getRequestId()
         )
+
         return ResponseEntity(errorResponse, HttpStatus.SERVICE_UNAVAILABLE)
     }
 
+    /**
+     * 모든 예외를 처리하는 기본 핸들러
+     */
     @ExceptionHandler(Exception::class)
     fun handleGenericException(ex: Exception): ResponseEntity<ErrorResponse> {
+        val errorCode = ErrorCode.COMMON_SYSTEM_ERROR
+        incrementErrorMetric(errorCode.code)
+
+        // 예상치 못한 오류는 스택 트레이스와 함께 로깅
+        log.error("Unhandled exception", ex)
+
+        val message = errorMessageService.getMessage(errorCode.code)
+
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
             status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            error = HttpStatus.INTERNAL_SERVER_ERROR.reasonPhrase,
-            message = "서버 내부 오류가 발생했습니다.",
+            error = errorCode.code,
+            message = message,
+            requestId = RequestContextHolder.getRequestId()
         )
+
         return ResponseEntity(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+
+    private fun incrementErrorMetric(errorCode: String) {
+        meterRegistry.counter("app.errors", "error.code", errorCode).increment()
     }
 }
 
@@ -97,5 +168,6 @@ data class ErrorResponse(
     val status: Int,
     val error: String,
     val message: String,
-    val details: Map<String, Any>? = null
+    val details: Map<String, Any>? = null,
+    var requestId: String
 )
