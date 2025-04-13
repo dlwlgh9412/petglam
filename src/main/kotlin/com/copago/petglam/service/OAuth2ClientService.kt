@@ -1,7 +1,7 @@
 package com.copago.petglam.service
 
 import com.copago.petglam.client.OAuth2ApiClient
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import com.copago.petglam.exception.OAuth2Exception
 import com.copago.petglam.model.UserProfile
 import org.slf4j.LoggerFactory
@@ -21,7 +21,7 @@ class OAuth2ClientService(
         val client = getClientByProvider(provider)
         val state = UUID.randomUUID().toString()
         log.info("Generating OAuth2 login URL for provider: {} [requestId={}]", 
-            provider, RequestContextHolder.getRequestId())
+            provider, PetglamRequestContext.getRequestId())
         return client.generateLoginUrl(state)
     }
 
@@ -29,7 +29,7 @@ class OAuth2ClientService(
      * 인증 코드로 소셜 로그인 처리
      */
     fun processOAuth2Login(provider: String, code: String, state: String? = null): UserProfile {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
         log.info("Processing OAuth2 login for provider: {} [requestId={}]", provider, requestId)
         
         val client = getClientByProvider(provider)

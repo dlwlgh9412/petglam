@@ -1,6 +1,6 @@
 package com.copago.petglam.client
 
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import com.copago.petglam.exception.ErrorCode
 import com.copago.petglam.exception.ExternalApiException
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -26,7 +26,7 @@ class RestHttpClient(
      * GET 요청 수행
      */
     override fun <T : Any> get(uri: String, responseType: Class<T>, headers: Map<String, String>?): T {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
         log.info("Starting GET request to {} [requestId={}]", uri, requestId)
 
         return try {
@@ -81,7 +81,7 @@ class RestHttpClient(
         contentType: MediaType,
         headers: Map<String, String>?
     ): R {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
         log.info("Starting POST request to {} [requestId={}]", uri, requestId)
 
         return try {
@@ -138,7 +138,7 @@ class RestHttpClient(
         responseType: Class<R>,
         headers: Map<String, String>?
     ): R {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
         log.info("Starting form POST request to {} [requestId={}]", uri, requestId)
 
         return try {

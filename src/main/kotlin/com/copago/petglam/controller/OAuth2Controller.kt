@@ -1,6 +1,6 @@
 package com.copago.petglam.controller
 
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import com.copago.petglam.model.AuthCodeRequest
 import com.copago.petglam.model.AuthResponse
 import com.copago.petglam.service.OAuth2ClientService
@@ -23,7 +23,7 @@ class OAuth2Controller(
      */
     @GetMapping("/url/{provider}")
     fun loginPageUrl(@PathVariable provider: String): ResponseEntity<Map<String, String>> {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
         log.info("Generating login URL for provider: {} [requestId={}]", provider, requestId)
 
         val url = oAuth2ClientService.generateLoginUrl(provider)
@@ -38,7 +38,7 @@ class OAuth2Controller(
         @PathVariable provider: String,
         @Valid @RequestBody request: AuthCodeRequest
     ): ResponseEntity<AuthResponse> {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
         log.info("Processing OAuth2 callback for provider: {} [requestId={}]", provider, requestId)
 
         try {

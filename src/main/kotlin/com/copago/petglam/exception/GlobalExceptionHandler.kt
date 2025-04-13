@@ -1,6 +1,6 @@
 package com.copago.petglam.exception
 
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import com.copago.petglam.service.ErrorMessageService
 import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.Logger
@@ -37,7 +37,7 @@ class GlobalExceptionHandler(
             error = ex.errorCodeString,
             message = message,
             details = ex.errorDetails,
-            requestId = ex.requestId ?: RequestContextHolder.getRequestId()
+            requestId = ex.requestId ?: PetglamRequestContext.getRequestId()
         )
 
         return ResponseEntity(errorResponse, HttpStatus.valueOf(ex.statusCode))
@@ -84,7 +84,7 @@ class GlobalExceptionHandler(
             error = errorCode.code,
             message = message,
             details = mapOf("validationErrors" to validationErrors),
-            requestId = RequestContextHolder.getRequestId()
+            requestId = PetglamRequestContext.getRequestId()
         )
 
         return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
@@ -105,7 +105,7 @@ class GlobalExceptionHandler(
             status = HttpStatus.NOT_FOUND.value(),
             error = errorCode.code,
             message = message,
-            requestId = RequestContextHolder.getRequestId()
+            requestId = PetglamRequestContext.getRequestId()
         )
 
         return ResponseEntity(errorResponse, HttpStatus.NOT_FOUND)
@@ -128,7 +128,7 @@ class GlobalExceptionHandler(
             status = HttpStatus.SERVICE_UNAVAILABLE.value(),
             error = errorCode.code,
             message = message,
-            requestId = RequestContextHolder.getRequestId()
+            requestId = PetglamRequestContext.getRequestId()
         )
 
         return ResponseEntity(errorResponse, HttpStatus.SERVICE_UNAVAILABLE)
@@ -152,7 +152,7 @@ class GlobalExceptionHandler(
             status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
             error = errorCode.code,
             message = message,
-            requestId = RequestContextHolder.getRequestId()
+            requestId = PetglamRequestContext.getRequestId()
         )
 
         return ResponseEntity(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR)

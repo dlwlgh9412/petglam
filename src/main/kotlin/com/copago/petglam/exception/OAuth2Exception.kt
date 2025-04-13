@@ -1,6 +1,6 @@
 package com.copago.petglam.exception
 
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 
 /**
  * OAuth2 인증 관련 예외
@@ -16,7 +16,7 @@ class OAuth2Exception(
     message: String? = null,
     errorCode: ErrorCode = ErrorCode.AUTH_OAUTH2_ERROR,
     errorDetails: Map<String, Any> = emptyMap(),
-    requestId: String? = RequestContextHolder.getRequestId(),
+    requestId: String? = PetglamRequestContext.getRequestId(),
     cause: Throwable? = null
 ) : AuthenticationException(
     errorCode = errorCode,

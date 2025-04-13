@@ -1,7 +1,7 @@
 package com.copago.petglam.service
 
 import com.copago.petglam.config.JwtConfig
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import com.copago.petglam.exception.AuthenticationException
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
@@ -64,7 +64,7 @@ class JwtService(private val jwtConfig: JwtConfig) {
      * 토큰 검증 및 클레임 추출
      */
     fun validateToken(token: String): Claims {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
 
         try {
             return Jwts.parser()

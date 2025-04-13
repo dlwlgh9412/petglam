@@ -1,6 +1,6 @@
 package com.copago.petglam.filter
 
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import com.copago.petglam.exception.AuthenticationException
 import com.copago.petglam.exception.ErrorResponse
 import com.copago.petglam.service.ErrorMessageService
@@ -29,7 +29,7 @@ class JwtAuthenticationFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
 
         // 인증이 필요 없는 경로는 필터를 건너뜀
         if (shouldSkipFilter(request)) {
@@ -113,7 +113,7 @@ class JwtAuthenticationFilter(
             error = authException.errorCodeString,
             message = message,
             details = authException.errorDetails,
-            requestId = authException.requestId ?: RequestContextHolder.getRequestId()
+            requestId = authException.requestId ?: PetglamRequestContext.getRequestId()
         )
 
         response.writer.write(objectMapper.writeValueAsString(errorResponse))

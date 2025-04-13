@@ -1,6 +1,6 @@
 package com.copago.petglam.filter
 
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -9,13 +9,15 @@ import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
+/**
+ * 요청 컨텍스트 정보를 설정하고 관리하는 필터
+ * Spring의 RequestContextFilter와 이름이 겹치지 않도록 이름 변경
+ */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
 class PetglamRequestContextFilter : OncePerRequestFilter() {
     companion object {
-        const val X_REQUEST_ID = "X_REQUEST_ID"
-        const val DEFAULT_LOCALE = "ko"
-        val SUPPORTED_LOCALES = listOf("ko")
+        const val X_REQUEST_ID = "X-Request-Id"
     }
 
     override fun doFilterInternal(
@@ -24,38 +26,22 @@ class PetglamRequestContextFilter : OncePerRequestFilter() {
         filterChain: FilterChain
     ) {
         try {
-            val requestId = request.getHeader(X_REQUEST_ID) ?: RequestContextHolder.getRequestId();
-            RequestContextHolder.setRequestId(requestId)
+            // 요청 ID 설정 (헤더에서 가져오거나 새로 생성)
+            val requestId = request.getHeader(X_REQUEST_ID) ?: PetglamRequestContext.getRequestId()
+            PetglamRequestContext.setRequestId(requestId)
 
             // 응답 헤더에 요청 ID 추가
             response.addHeader(X_REQUEST_ID, requestId)
 
-            val acceptLanguage = request.getHeader("Accept-Language")
-            val locale = parseLocale(acceptLanguage)
-            RequestContextHolder.setLocale(locale)
+            // 로케일 설정
+            val locale = PetglamRequestContext.parseLocaleFromRequest(request)
+            PetglamRequestContext.setLocale(locale)
 
+            // 필터 체인 계속 실행
             filterChain.doFilter(request, response)
         } finally {
-            RequestContextHolder.clear()
+            // 요청 처리 완료 후 컨텍스트 정보 초기화
+            PetglamRequestContext.clear()
         }
     }
-
-    private fun parseLocale(acceptLanguage: String?): String {
-        if (acceptLanguage.isNullOrBlank()) {
-            return DEFAULT_LOCALE
-        }
-
-        // 첫 번째 언어 코드 추출 (예: ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7 -> ko)
-        val locale = acceptLanguage.split(',').firstOrNull()
-            ?.split(';')?.firstOrNull()
-            ?.split('-')?.firstOrNull()
-            ?.lowercase()
-
-        return when {
-            locale.isNullOrBlank() -> DEFAULT_LOCALE
-            SUPPORTED_LOCALES.contains(locale) -> locale
-            else -> DEFAULT_LOCALE
-        }
-    }
-
 }

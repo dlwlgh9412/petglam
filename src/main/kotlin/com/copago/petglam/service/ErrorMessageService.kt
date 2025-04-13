@@ -1,6 +1,6 @@
 package com.copago.petglam.service
 
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import org.springframework.context.MessageSource
 import org.springframework.context.NoSuchMessageException
 import org.springframework.stereotype.Service
@@ -21,7 +21,7 @@ class ErrorMessageService(
     }
 
     private fun getLocale(): Locale {
-        val localeCode = RequestContextHolder.getLocale()
+        val localeCode = PetglamRequestContext.getLocale()
         return when (localeCode) {
             else -> Locale.KOREAN
         }

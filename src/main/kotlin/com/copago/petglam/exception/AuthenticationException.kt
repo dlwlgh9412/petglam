@@ -1,6 +1,6 @@
 package com.copago.petglam.exception
 
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 
 /**
  * 인증 관련 예외의 기본 클래스
@@ -16,7 +16,7 @@ open class AuthenticationException(
     errorCode: ErrorCode = ErrorCode.AUTH_INVALID_CREDENTIAL,
     message: String? = null,
     errorDetails: Map<String, Any> = emptyMap(),
-    requestId: String? = RequestContextHolder.getRequestId(),
+    requestId: String? = PetglamRequestContext.getRequestId(),
     cause: Throwable? = null
 ) : HttpException(errorCode, message, errorDetails, requestId, cause) {
     companion object {

@@ -1,7 +1,7 @@
 package com.copago.petglam.client
 
 import com.copago.petglam.config.OAuth2Config
-import com.copago.petglam.context.RequestContextHolder
+import com.copago.petglam.context.PetglamRequestContext
 import com.copago.petglam.exception.ExternalApiException
 import com.copago.petglam.model.UserProfile
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -19,7 +19,7 @@ class KakaoApiClient(
      * 카카오 액세스 토큰 요청
      */
     override fun getToken(code: String): OAuthTokenInfo {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
         log.info("Requesting Kakao access token [requestId={}]", requestId)
 
         val formData = mapOf(
@@ -60,7 +60,7 @@ class KakaoApiClient(
      * 카카오 사용자 프로필 요청
      */
     override fun getUserProfile(accessToken: String): UserProfile {
-        val requestId = RequestContextHolder.getRequestId()
+        val requestId = PetglamRequestContext.getRequestId()
         log.info("Requesting Kakao user profile [requestId={}]", requestId)
 
         try {
