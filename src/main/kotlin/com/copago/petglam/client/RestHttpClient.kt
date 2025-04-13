@@ -20,10 +20,8 @@ class RestHttpClient(
 
             if (headers != null) {
                 requestSpec.headers { headerValues ->
-                    {
-                        headers.forEach { (key, value) ->
-                            headerValues.add(key, value)
-                        }
+                    headers.forEach { (key, value) ->
+                        headerValues.add(key, value)
                     }
                 }
             }

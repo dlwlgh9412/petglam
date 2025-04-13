@@ -8,6 +8,7 @@ import org.springframework.web.client.RestClient
 class RestClientConfig {
     @Bean
     fun restClient(): RestClient {
-        return RestClient.builder().build()
+        return RestClient.builder()
+            .build()
     }
 }
