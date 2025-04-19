@@ -1,11 +1,9 @@
 package com.copago.petglam.controller
 
 import com.copago.petglam.context.PetglamRequestContext
-import com.copago.petglam.model.AuthCodeRequest
 import com.copago.petglam.model.AuthResponse
 import com.copago.petglam.service.OAuth2ClientService
 import com.copago.petglam.service.UserService
-import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -33,31 +31,22 @@ class OAuth2Controller(
     /**
      * 소셜 로그인 콜백 처리
      */
-    @PostMapping("/callback/{provider}")
+    @GetMapping("/callback/{provider}")
     fun handleOAuth2Callback(
         @PathVariable provider: String,
-        @Valid @RequestBody request: AuthCodeRequest
+        @RequestParam code: String,
+        @RequestParam state: String?
     ): ResponseEntity<AuthResponse> {
         val requestId = PetglamRequestContext.getRequestId()
         log.info("Processing OAuth2 callback for provider: {} [requestId={}]", provider, requestId)
 
-        try {
-            // 소셜 로그인 처리 및 사용자 정보 획득
-            val userProfile = oAuth2ClientService.processOAuth2Login(
-                provider,
-                request.code,
-                request.state
-            )
+        // 소셜 로그인 처리 및 사용자 정보 획득
+        val userProfile = oAuth2ClientService.processOAuth2Login(provider, code, state)
 
-            // 사용자 처리 및 JWT 토큰 생성
-            val authResponse = userService.processSocialLogin(userProfile)
+        // 사용자 처리 및 JWT 토큰 생성
+        val authResponse = userService.processSocialLogin(userProfile)
 
-            log.info("OAuth2 login successful for provider: {} [requestId={}]", provider, requestId)
-            return ResponseEntity.ok(authResponse)
-        } catch (e: Exception) {
-            // 로깅 처리는 GlobalExceptionHandler에서 수행되므로 여기서는 예외를 그대로 던집니다.
-            log.warn("OAuth2 callback processing failed for provider: {} [requestId={}]", provider, requestId)
-            throw e
-        }
+        log.info("OAuth2 login successful for provider: {} [requestId={}]", provider, requestId)
+        return ResponseEntity.ok(authResponse)
     }
 }

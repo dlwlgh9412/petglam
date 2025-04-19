@@ -1,5 +1,6 @@
 package com.copago.petglam.filter
 
+import com.copago.petglam.config.JwtConfig
 import com.copago.petglam.context.PetglamRequestContext
 import com.copago.petglam.exception.AuthenticationException
 import com.copago.petglam.exception.ErrorResponse
@@ -10,19 +11,23 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
+
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
+import org.springframework.util.AntPathMatcher
 import org.springframework.web.filter.OncePerRequestFilter
 import java.time.LocalDateTime
 
 @Component
 class JwtAuthenticationFilter(
+    private val jwtConfig: JwtConfig,
     private val jwtService: JwtService,
     private val objectMapper: ObjectMapper,
-    private val errorMessageService: ErrorMessageService
+    private val errorMessageService: ErrorMessageService,
 ) : OncePerRequestFilter() {
     private val log = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
+    private val pathMapper = AntPathMatcher()
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -80,12 +85,7 @@ class JwtAuthenticationFilter(
      */
     private fun shouldSkipFilter(request: HttpServletRequest): Boolean {
         val path = request.requestURI
-        return path.startsWith("/api/v1/oauth2") ||
-                path.startsWith("/h2-console") ||
-                path.startsWith("/error") ||
-                path.startsWith("/swagger-ui") ||
-                path.startsWith("/v3/api-docs") ||
-                path.startsWith("/actuator")
+        return jwtConfig.excludePaths.any { pattern -> pathMapper.match(pattern, path)}
     }
 
     /**

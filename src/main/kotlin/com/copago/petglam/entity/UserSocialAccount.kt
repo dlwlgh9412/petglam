@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 
 @Entity
 @Table(
-    name = "user_social_connections",
+    name = "tb_user_social_accounts",
     uniqueConstraints = [
         UniqueConstraint(
             name = "uk_provider_provider_id",
@@ -17,7 +17,7 @@ import java.time.LocalDateTime
         )
     ]
 )
-class UserSocialConnection(
+class UserSocialAccount(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,

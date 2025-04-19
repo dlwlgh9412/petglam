@@ -1,19 +1,19 @@
 package com.copago.petglam.service
 
 import com.copago.petglam.entity.User
-import com.copago.petglam.entity.UserSocialConnection
+import com.copago.petglam.entity.UserSocialAccount
 import com.copago.petglam.exception.ResourceNotFoundException
 import com.copago.petglam.model.AuthResponse
 import com.copago.petglam.model.UserProfile
 import com.copago.petglam.repository.UserRepository
-import com.copago.petglam.repository.UserSocialConnectionRepository
+import com.copago.petglam.repository.UserSocialAccountRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val userSocialConnectionRepository: UserSocialConnectionRepository,
+    private val userSocialAccountRepository: UserSocialAccountRepository,
     private val jwtService: JwtService
 ) {
     /**
@@ -54,46 +54,40 @@ class UserService(
         val provider = profile.provider ?: throw IllegalArgumentException("소셜 제공자 정보가 없습니다.")
 
         // 기존 소셜 연결 확인
-        val existingSocialConnection = userSocialConnectionRepository
-            .findByProviderAndProviderId(provider, providerId)
+        val existingSocialConnection = userSocialAccountRepository.findByProviderAndProviderId(provider, providerId)
 
         // 기존 소셜 연결이 있으면 해당 사용자 반환
-        if (existingSocialConnection.isPresent) {
-            val user = existingSocialConnection.get().user
-            
-            // 프로필 정보 업데이트
+        existingSocialConnection?.let {
+            val user = it.user
             profile.name?.let { name ->
                 profile.picture?.let { picture ->
                     user.updateProfile(name, picture)
                 }
             }
-            
+
             return userRepository.save(user)
         }
 
         // 이메일로 기존 사용자 확인
         val email = profile.email
-        if (email != null && email.isNotBlank()) {
+        if (!email.isNullOrBlank()) {
             val existingUser = userRepository.findByEmail(email)
-            
-            if (existingUser.isPresent) {
-                val user = existingUser.get()
-                
+
+            existingUser?.let { user ->
                 // 소셜 연결 추가
-                val socialConnection = UserSocialConnection(
+                val socialAccount = UserSocialAccount(
                     user = user,
                     provider = provider,
                     providerId = providerId
                 )
-                user.socialConnections.add(socialConnection)
-                
-                // 프로필 정보 업데이트
+
+                user.socialAccounts.add(socialAccount)
+
                 profile.name?.let { name ->
                     profile.picture?.let { picture ->
                         user.updateProfile(name, picture)
                     }
                 }
-                
                 return userRepository.save(user)
             }
         }
@@ -105,17 +99,17 @@ class UserService(
             profileImageUrl = profile.picture,
             isEmailVerified = email != null
         )
-        
+
         val savedUser = userRepository.save(newUser)
-        
+
         // 소셜 연결 추가
-        val socialConnection = UserSocialConnection(
+        val socialConnection = UserSocialAccount(
             user = savedUser,
             provider = provider,
             providerId = providerId
         )
-        savedUser.socialConnections.add(socialConnection)
-        
+        savedUser.socialAccounts.add(socialConnection)
+
         return userRepository.save(savedUser)
     }
 
@@ -132,6 +126,6 @@ class UserService(
      */
     fun getUserByEmail(email: String): User {
         return userRepository.findByEmail(email)
-            .orElseThrow { ResourceNotFoundException("해당 이메일의 사용자를 찾을 수 없습니다: $email") }
+            ?: throw ResourceNotFoundException("해당 이메일의 사용자를 찾을 수 없습니다: $email")
     }
 }

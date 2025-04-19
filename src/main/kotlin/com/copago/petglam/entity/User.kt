@@ -4,12 +4,7 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity
-@Table(
-    name = "users",
-    indexes = [
-        Index(name = "idx_user_email", columnList = "email", unique = true)
-    ]
-)
+@Table(name = "tb_users",)
 class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,7 +38,7 @@ class User(
     var refreshToken: String? = null,
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
-    val socialConnections: MutableSet<UserSocialConnection> = mutableSetOf()
+    val socialAccounts: MutableSet<UserSocialAccount> = mutableSetOf()
 ) {
     fun updateProfile(name: String?, profileImageUrl: String?) {
         name?.let { this.name = it }

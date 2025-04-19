@@ -5,10 +5,20 @@ import org.springframework.context.annotation.Configuration
 import java.time.Duration
 
 @Configuration
-@ConfigurationProperties(prefix = "jwt")
+@ConfigurationProperties(prefix = "security.jwt")
 class JwtConfig {
     var secret: String = "default-jwt-secret-key-should-be-changed-in-production"
     var accessTokenExpiration: Duration = Duration.ofHours(1)
     var refreshTokenExpiration: Duration = Duration.ofDays(30)
     var issuer: String = "petglam-api"
+
+    var excludePaths: List<String> = listOf(
+        "/api/v1/oauth2/**",
+        "/api/v1/auth/**",
+        "/h2-console/**",
+        "swagger-ui/**",
+        "/swagger-resources/**",
+        "/v3/api-docs/**",
+        "actuator/**"
+    )
 }
