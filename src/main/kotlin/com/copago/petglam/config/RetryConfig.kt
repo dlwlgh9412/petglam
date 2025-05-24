@@ -1,6 +1,6 @@
 package com.copago.petglam.config
 
-import com.copago.petglam.exception.ExternalApiException
+import com.copago.petglam.exception.InfrastructureException
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.retry.RetryContext
@@ -34,17 +34,16 @@ class RetryConfig {
     private fun retryPolicy(): RetryPolicy {
         val exceptionMap = HashMap<Class<out Throwable>, Boolean>()
 
-        // 재시도 가능한 예외 유형 지정
         exceptionMap[SocketTimeoutException::class.java] = true
         exceptionMap[TimeoutException::class.java] = true
-        exceptionMap[ExternalApiException::class.java] = true
+        exceptionMap[InfrastructureException::class.java] = true
 
         return object : SimpleRetryPolicy(3, exceptionMap, true) {
             override fun canRetry(context: RetryContext): Boolean {
                 val throwable = context.lastThrowable
 
-                if (throwable is ExternalApiException) {
-                    return throwable.isRetryable() && super.canRetry(context)
+                if (throwable is InfrastructureException) {
+                    return throwable.isRetryable && super.canRetry(context)
                 }
 
                 return super.canRetry(context)

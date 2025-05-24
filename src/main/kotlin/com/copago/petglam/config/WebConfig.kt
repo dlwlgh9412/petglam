@@ -31,10 +31,8 @@ class WebConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilter) {
         val source = UrlBasedCorsConfigurationSource()
         val config = CorsConfiguration()
         
-        // CORS 설정
         config.allowCredentials = true
-        // 개발용 출처 (실제 환경에 맞게 설정 필요)
-        config.addAllowedOriginPattern("*") // 모든 출처를 패턴으로 허용
+        config.addAllowedOriginPattern("*")
         config.addAllowedHeader("*")
         config.addAllowedMethod("*")
         config.maxAge = 3600L

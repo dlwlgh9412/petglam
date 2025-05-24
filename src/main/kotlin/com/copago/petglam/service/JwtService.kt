@@ -74,23 +74,13 @@ class JwtService(private val jwtConfig: JwtConfig) {
                 .payload
         } catch (e: ExpiredJwtException) {
             log.debug("Expired JWT token [requestId={}]", requestId, e)
-            throw AuthenticationException.tokenExpired(
-                errorDetails = mapOf("token" to maskToken(token))
-            )
+            throw AuthenticationException.tokenExpired()
         } catch (e: JwtException) {
             log.debug("Invalid JWT token [requestId={}]", requestId, e)
-            throw AuthenticationException.invalidToken(
-                message = "유효하지 않은 토큰입니다: ${e.message}",
-                errorDetails = mapOf("token" to maskToken(token)),
-                cause = e
-            )
+            throw AuthenticationException.tokenInvalid()
         } catch (e: IllegalArgumentException) {
             log.debug("JWT token compact of handler are invalid [requestId={}]", requestId, e)
-            throw AuthenticationException.invalidToken(
-                message = "유효하지 않은 토큰입니다: ${e.message}",
-                errorDetails = mapOf("token" to maskToken(token)),
-                cause = e
-            )
+            throw AuthenticationException.tokenInvalid()
         }
     }
 
@@ -112,20 +102,6 @@ class JwtService(private val jwtConfig: JwtConfig) {
      * 토큰에서 사용자 역할 목록 추출
      */
     fun getRolesFromToken(token: String): List<String> {
-        @Suppress("UNCHECKED_CAST")
         return validateToken(token).get("roles", List::class.java) as List<String>
-    }
-
-    /**
-     * 토큰 마스킹 처리 (로깅용)
-     */
-    private fun maskToken(token: String): String {
-        return if (token.length > 10) {
-            val prefix = token.substring(0, 5)
-            val suffix = token.substring(token.length - 5)
-            "$prefix....$suffix"
-        } else {
-            "***"
-        }
     }
 }

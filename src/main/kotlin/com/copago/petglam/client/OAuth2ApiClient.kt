@@ -1,5 +1,6 @@
 package com.copago.petglam.client
 
+import com.copago.petglam.model.OAuthTokenInfo
 import com.copago.petglam.model.UserProfile
 
 /**
@@ -26,14 +27,3 @@ interface OAuth2ApiClient {
      */
     fun getProviderName(): String
 }
-
-/**
- * OAuth 토큰 정보
- */
-data class OAuthTokenInfo(
-    val accessToken: String,
-    val refreshToken: String,
-    val expiresIn: Int,
-    val tokenType: String,
-    val scope: String? = null
-)

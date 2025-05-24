@@ -1,9 +1,9 @@
 package com.copago.petglam.service
 
-import com.copago.petglam.entity.User
-import com.copago.petglam.entity.UserSocialAccount
-import com.copago.petglam.exception.ResourceNotFoundException
-import com.copago.petglam.model.AuthResponse
+import com.copago.petglam.entity.UserEntity
+import com.copago.petglam.entity.UserSocialAccountEntity
+import com.copago.petglam.exception.UserException
+import com.copago.petglam.dto.AuthResponse
 import com.copago.petglam.model.UserProfile
 import com.copago.petglam.repository.UserRepository
 import com.copago.petglam.repository.UserSocialAccountRepository
@@ -49,7 +49,7 @@ class UserService(
      * 소셜 로그인 사용자 조회 또는 생성
      */
     @Transactional
-    fun findOrCreateSocialUser(profile: UserProfile): User {
+    fun findOrCreateSocialUser(profile: UserProfile): UserEntity {
         val providerId = profile.id ?: throw IllegalArgumentException("소셜 ID가 없습니다.")
         val provider = profile.provider ?: throw IllegalArgumentException("소셜 제공자 정보가 없습니다.")
 
@@ -58,7 +58,7 @@ class UserService(
 
         // 기존 소셜 연결이 있으면 해당 사용자 반환
         existingSocialConnection?.let {
-            val user = it.user
+            val user = it.userEntity
             profile.name?.let { name ->
                 profile.picture?.let { picture ->
                     user.updateProfile(name, picture)
@@ -75,8 +75,8 @@ class UserService(
 
             existingUser?.let { user ->
                 // 소셜 연결 추가
-                val socialAccount = UserSocialAccount(
-                    user = user,
+                val socialAccount = UserSocialAccountEntity(
+                    userEntity = user,
                     provider = provider,
                     providerId = providerId
                 )
@@ -93,18 +93,18 @@ class UserService(
         }
 
         // 새 사용자 생성
-        val newUser = User(
+        val newUserEntity = UserEntity(
             email = email ?: "$providerId@$provider.account",
             name = profile.name ?: "사용자",
             profileImageUrl = profile.picture,
             isEmailVerified = email != null
         )
 
-        val savedUser = userRepository.save(newUser)
+        val savedUser = userRepository.save(newUserEntity)
 
         // 소셜 연결 추가
-        val socialConnection = UserSocialAccount(
-            user = savedUser,
+        val socialConnection = UserSocialAccountEntity(
+            userEntity = savedUser,
             provider = provider,
             providerId = providerId
         )
@@ -116,16 +116,14 @@ class UserService(
     /**
      * ID로 사용자 조회
      */
-    fun getUserById(id: Long): User {
-        return userRepository.findById(id)
-            .orElseThrow { ResourceNotFoundException("해당 ID의 사용자를 찾을 수 없습니다: $id") }
+    fun getUserById(id: Long): UserEntity {
+        return userRepository.findById(id).orElseThrow { UserException.notFound() }
     }
 
     /**
      * 이메일로 사용자 조회
      */
-    fun getUserByEmail(email: String): User {
-        return userRepository.findByEmail(email)
-            ?: throw ResourceNotFoundException("해당 이메일의 사용자를 찾을 수 없습니다: $email")
+    fun getUserByEmail(email: String): UserEntity {
+        return userRepository.findByEmail(email) ?: throw UserException.notFound()
     }
 }

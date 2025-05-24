@@ -1,7 +1,7 @@
 package com.copago.petglam.controller
 
 import com.copago.petglam.context.PetglamRequestContext
-import com.copago.petglam.model.AuthResponse
+import com.copago.petglam.dto.AuthResponse
 import com.copago.petglam.service.OAuth2ClientService
 import com.copago.petglam.service.UserService
 import org.slf4j.LoggerFactory

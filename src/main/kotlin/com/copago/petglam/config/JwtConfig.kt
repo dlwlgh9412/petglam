@@ -15,10 +15,13 @@ class JwtConfig {
     var excludePaths: List<String> = listOf(
         "/api/v1/oauth2/**",
         "/api/v1/auth/**",
+        "/api/v1/salons/**",
         "/h2-console/**",
         "swagger-ui/**",
         "/swagger-resources/**",
         "/v3/api-docs/**",
-        "actuator/**"
+        "actuator/**",
+        "/app/chat/**",
+        "/ws/chat/**"
     )
 }

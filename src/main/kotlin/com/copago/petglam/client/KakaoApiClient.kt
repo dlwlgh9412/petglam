@@ -2,9 +2,11 @@ package com.copago.petglam.client
 
 import com.copago.petglam.config.OAuth2Config
 import com.copago.petglam.context.PetglamRequestContext
-import com.copago.petglam.exception.ExternalApiException
+import com.copago.petglam.dto.KakaoTokenResponse
+import com.copago.petglam.dto.KakaoUserInfoResponse
+import com.copago.petglam.exception.ExternalServiceException
+import com.copago.petglam.model.OAuthTokenInfo
 import com.copago.petglam.model.UserProfile
-import com.fasterxml.jackson.annotation.JsonProperty
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -34,7 +36,7 @@ class KakaoApiClient(
             val response = httpClient.postFormUrlEncoded(
                 uri = oAuth2Config.kakao.tokenUri,
                 formData = formData,
-                responseType = KakaoTokenResponseDto::class.java
+                responseType = KakaoTokenResponse::class.java
             )
 
             return OAuthTokenInfo(
@@ -46,11 +48,11 @@ class KakaoApiClient(
             )
         } catch (e: Exception) {
             log.error("Failed to get Kakao token [requestId={}]", requestId, e)
-            throw ExternalApiException(
-                uri = oAuth2Config.kakao.tokenUri,
+            throw ExternalServiceException(
+                serviceName = getProviderName(),
                 message = "카카오 액세스 토큰 요청 중 오류가 발생했습니다.",
-                errorDetails = mapOf("error" to (e.message ?: "알 수 없는 오류")),
-                requestId = requestId,
+                isRetryable = false,
+                details = mapOf("error" to (e.message ?: "알 수 없는 오류")),
                 cause = e
             )
         }
@@ -79,11 +81,10 @@ class KakaoApiClient(
             )
         } catch (e: Exception) {
             log.error("Failed to get Kakao user profile [requestId={}]", requestId, e)
-            throw ExternalApiException(
-                uri = oAuth2Config.kakao.userInfoUri,
+            throw ExternalServiceException(
+                serviceName = getProviderName(),
                 message = "카카오 사용자 프로필 요청 중 오류가 발생했습니다.",
-                errorDetails = mapOf("error" to (e.message ?: "알 수 없는 오류")),
-                requestId = requestId,
+                details = mapOf("error" to (e.message ?: "알 수 없는 오류")),
                 cause = e
             )
         }
@@ -109,45 +110,6 @@ class KakaoApiClient(
      */
     override fun getProviderName(): String = "kakao"
 
-    // DTO 클래스들
-    data class KakaoTokenResponseDto(
-        @JsonProperty("access_token")
-        val accessToken: String,
 
-        @JsonProperty("token_type")
-        val tokenType: String,
 
-        @JsonProperty("refresh_token")
-        val refreshToken: String,
-
-        @JsonProperty("expires_in")
-        val expiresIn: Int,
-
-        val scope: String? = null
-    )
-
-    data class KakaoUserInfoResponse(
-        val id: Long,
-
-        @JsonProperty("kakao_account")
-        val kakaoAccount: KakaoAccount
-    )
-
-    data class KakaoAccount(
-        val profile: KakaoProfile? = null,
-        val email: String? = null,
-
-        @JsonProperty("is_email_verified")
-        val isEmailVerified: Boolean? = null
-    )
-
-    data class KakaoProfile(
-        val nickname: String? = null,
-
-        @JsonProperty("profile_image_url")
-        val profileImageUrl: String? = null,
-
-        @JsonProperty("thumbnail_image_url")
-        val thumbnailImageUrl: String? = null
-    )
 }

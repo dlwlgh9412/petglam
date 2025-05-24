@@ -1,13 +1,15 @@
 spring:
-  datasource:
-    url: jdbc:h2:mem:petglam
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: test1234!!
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+        shutdown-timeout: 100ms
   jpa:
     hibernate:
       ddl-auto: validate
@@ -19,6 +21,17 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/petglam?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
+    password: wlgh7078!!
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
 
 security:
   jwt:
@@ -36,3 +49,14 @@ oauth2:
     token-uri: "https://kauth.kakao.com/oauth/token"
     user-info-uri: "https://kapi.kakao.com/v2/user/me"
     scopes: "profile_nickname,profile_image,account_email"
+
+app:
+  version:
+    fail-safe-min-version: "1.0.0"
+    redis-key-prefix: "app_version:min_supported:"
+
+logging:
+  level:
+    org.springframework.web.socket: TRACE
+    org.springframework.messaging: TRACE
+    com.copago.petglam.chat: DEBUG # 현재 프로젝트의 채팅 관련 패키지

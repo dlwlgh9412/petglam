@@ -1,81 +1,32 @@
 package com.copago.petglam.exception
 
-import com.copago.petglam.context.PetglamRequestContext
+import com.copago.petglam.exception.enums.SecurityErrorCode
 
-/**
- * 인증 관련 예외의 기본 클래스
- * 모든 인증 및 인가 과정에서 발생하는 예외의 부모 클래스
- *
- * 예시:
- * - 잘못된 인증 정보
- * - 만료된 토큰
- * - 권한 부족
- * - 소셜 로그인 오류
- */
-open class AuthenticationException(
-    errorCode: ErrorCode = ErrorCode.AUTH_INVALID_CREDENTIAL,
+class AuthenticationException(
+    errorCode: SecurityErrorCode,
     message: String? = null,
-    errorDetails: Map<String, Any> = emptyMap(),
-    requestId: String? = PetglamRequestContext.getRequestId(),
+    details: Map<String, Any> = emptyMap(),
     cause: Throwable? = null
-) : HttpException(errorCode, message, errorDetails, requestId, cause) {
+) : SecurityException(errorCode, message, details, cause) {
     companion object {
-        /**
-         * 유효하지 않은 인증 정보 예외
-         */
-        fun invalidCredentials(
+        fun failed(
             message: String? = null,
-            errorDetails: Map<String, Any> = emptyMap(),
-        ): AuthenticationException {
-            return AuthenticationException(
-                errorCode = ErrorCode.AUTH_INVALID_CREDENTIAL,
-                message = message ?: "잘못된 인증 정보입니다.",
-                errorDetails = errorDetails,
-            )
-        }
-
-        /**
-         * 만료된 토큰에 대한 예외
-         */
-        fun tokenExpired(
-            message: String? = null,
-            errorDetails: Map<String, Any> = emptyMap(),
-        ): AuthenticationException {
-            return AuthenticationException(
-                errorCode = ErrorCode.AUTH_TOKEN_EXPIRED,
-                message = message ?: "만료된 토큰입니다.",
-                errorDetails = errorDetails,
-            )
-        }
-
-        /**
-         * 유효하지 않은 토큰에 대한 예외
-         */
-        fun invalidToken(
-            message: String? = null,
-            errorDetails: Map<String, Any> = emptyMap(),
+            details: Map<String, Any> = emptyMap(),
             cause: Throwable? = null
         ): AuthenticationException {
-            return AuthenticationException(
-                errorCode = ErrorCode.AUTH_INVALID_TOKEN,
-                message = message ?: "유효하지 않은 토큰입니다.",
-                errorDetails = errorDetails,
-                cause = cause
-            )
+            return AuthenticationException(SecurityErrorCode.AUTHENTICATION_FAILED, message, details, cause)
         }
 
-        /**
-         * 접근 권한 부족에 대한 예외
-         */
-        fun accessDenied(
+        fun tokenExpired(details: Map<String, Any> = emptyMap()): AuthenticationException {
+            return AuthenticationException(SecurityErrorCode.TOKEN_EXPIRED, details = details)
+        }
+
+        fun tokenInvalid(
             message: String? = null,
-            errorDetails: Map<String, Any> = emptyMap()
+            details: Map<String, Any> = emptyMap(),
+            cause: Throwable? = null
         ): AuthenticationException {
-            return AuthenticationException(
-                errorCode = ErrorCode.AUTH_ACCESS_DENIED,
-                message = message ?: "접근 권한이 없습니다.",
-                errorDetails = errorDetails
-            )
+            return AuthenticationException(SecurityErrorCode.TOKEN_INVALID, message, details, cause)
         }
     }
 }
