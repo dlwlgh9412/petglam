@@ -23,5 +23,6 @@ class JwtConfig {
         "actuator/**",
         "/app/chat/**",
         "/ws/chat/**"
+
     )
 }

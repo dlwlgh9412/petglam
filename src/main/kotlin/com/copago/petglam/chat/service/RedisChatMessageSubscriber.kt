@@ -2,7 +2,6 @@ package com.copago.petglam.chat.service
 
 import com.copago.petglam.dto.ChatMessageDto
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.connection.Message
 import org.springframework.data.redis.connection.MessageListener
@@ -11,10 +10,10 @@ import org.springframework.stereotype.Service
 
 @Service
 class RedisChatMessageSubscriber(
-    private val messageTemplate: SimpMessagingTemplate
+    private val messageTemplate: SimpMessagingTemplate,
+    private val objectMapper: ObjectMapper
 ) : MessageListener {
     private val log = LoggerFactory.getLogger(RedisChatMessageSubscriber::class.java)
-    private val objectMapper = ObjectMapper().registerModule(JavaTimeModule())
 
     override fun onMessage(message: Message, pattern: ByteArray?) {
         try {

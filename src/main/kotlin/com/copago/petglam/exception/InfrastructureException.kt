@@ -6,6 +6,6 @@ open class InfrastructureException (
     errorCode: InfrastructureErrorCode,
     message: String? = null,
     details: Map<String, Any> = emptyMap(),
-    val isRetryable: Boolean = false, // 재시도 가능 여부
+    val isRetryable: Boolean = false,
     cause: Throwable? = null
 ) : BaseException(errorCode, message, details, cause)
