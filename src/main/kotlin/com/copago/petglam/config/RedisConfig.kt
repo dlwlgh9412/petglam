@@ -16,12 +16,11 @@ import org.springframework.data.redis.serializer.StringRedisSerializer
 @Configuration
 class RedisConfig {
     @Bean
-    fun redisTemplate(redisConnectionFactory: RedisConnectionFactory): RedisTemplate<String, Any> {
+    fun redisTemplate(redisConnectionFactory: RedisConnectionFactory, objectMapper: ObjectMapper): RedisTemplate<String, Any> {
         val template = RedisTemplate<String, Any>()
         template.connectionFactory = redisConnectionFactory
         template.keySerializer = StringRedisSerializer()
 
-        val objectMapper = ObjectMapper().registerModule(JavaTimeModule())
         template.valueSerializer = GenericJackson2JsonRedisSerializer(objectMapper)
 
         template.hashKeySerializer = StringRedisSerializer()
